@@ -1,0 +1,30 @@
+From : Theo Goria <theo.goria@machine.example><CR><LF>
+TO: Test <test@machine.example><CR><LF>
+Subject: Msg 1<CR><LF>
+DATE: Fri, 21 Nov 1997 09:55:06 -0600<CR><LF>
+Message_ID: <1234@local.machine.example><CR><LF>
+<CR><LF>
+Msg1 1/2.<CR><LF>
+Msg1 2/2.<CR><LF>
+.<CR><LF>
+From : Theo Goria <theo.goria@machine.example><CR><LF>
+TO: Test <test@machine.example><CR><LF>
+Subject: Msg 2<CR><LF>
+DATE: Fri, 21 Nov 1997 09:55:06 -0600<CR><LF>
+Message_ID: <1235@local.machine.example><CR><LF>
+<CR><LF>
+Msg2 1/4.<CR><LF>
+Msg2 2/4.<CR><LF>
+Msg2 3/4.<CR><LF>
+Msg2 4/4.<CR><LF>
+.<CR><LF>
+From : Thomas Prieur-Drevon <thomas.prieur-drevon@machine.example><CR><LF>
+TO: Test <test@machine.example><CR><LF>
+Subject: Msg 3<CR><LF>
+DATE: Fri, 21 Nov 1997 09:55:06 -0600<CR><LF>
+Message_ID: <1236@local.machine.example><CR><LF>
+<CR><LF>
+Msg3 1/3.<CR><LF>
+Msg3 2/3.<CR><LF>
+Msg3 3/3.<CR><LF>
+.<CR><LF>
