@@ -75,11 +75,15 @@ public class Communication {
 
             System.out.println(request);
             ArrayList<String> requestSplitted = new ArrayList<>();
-            Scanner s = new Scanner(request).useDelimiter("\\s+");
-            while(s.hasNext()){
-                requestSplitted.add(s.next());
+            if(request != null) {
+                Scanner s = new Scanner(request).useDelimiter("\\s+");
+                while (s.hasNext()) {
+                    requestSplitted.add(s.next());
+                }
+            } else {
+                requestSplitted.add("QUIT");
             }
-            System.out.println(requestSplitted.get(0));
+//            System.out.println(requestSplitted.get(0));
             if (requestSplitted.get(0).equals("APOP")) {
                 switch (state) {
                     case 2: //READY
@@ -90,10 +94,10 @@ public class Communication {
                             this.user=requestSplitted.get(1);
                             ArrayList<Integer> list = getMsgSTAT();
                             out.write(("+OK maildrop has "+list.get(0)+" message(s) ("+list.get(1)+" octets)\r\n").getBytes());
-                        } catch (Exception e) {
+                            state = 5;
+                        } catch (IOException e) {
                             out.write("-ERR invalid user\r\n".getBytes());
                         }
-                        state = 5;
                         break;
                     case 4: //AUTHORISATION
                         out.write("-ERR\r\n".getBytes());
@@ -123,7 +127,7 @@ public class Communication {
                         try {
                             ArrayList<Integer> list = getMsgSTAT();
                             out.write(("+OK "+list.get(0)+" "+list.get(1)+"\r\n").getBytes());
-                        } catch (Exception e) {
+                        } catch (IOException e) {
                             out.write("-ERR\r\n".getBytes());
                         }
                         break;
@@ -156,7 +160,7 @@ public class Communication {
                             for (String string : list) {
                                 out.write(string.getBytes());//CRLF ???
                             }
-                        } catch (Exception e) {
+                        } catch (IOException e) {
                             out.write("-ERR\r\n".getBytes());
                         }
                         break;
@@ -192,11 +196,11 @@ public class Communication {
         }
     }
 
-    public ArrayList<String> getMsgRETR(int nbMsg) throws Exception{
+    public ArrayList<String> getMsgRETR(int nbMsg) throws IOException{
         String path = "./src/ServerPop3/msg/"+user+".txt";
         ArrayList<String> list= new ArrayList<>();
         int nbBytes = 0;
-        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+        BufferedReader br = new BufferedReader(new FileReader(path));
             String line;
             int nbPoint = 1;
             while ((line = br.readLine()) != null && nbPoint<= nbMsg) {
@@ -204,48 +208,32 @@ public class Communication {
                     list.add(line+"\r\n");
                     nbBytes += line.getBytes("UTF-8").length;
                 }
-                if (line.equals(".<CR><LF>")) {
+                if (line.equals(".")) {
                     nbPoint++;
                 }
             }
             list.add(0,nbBytes+" octets\r\n");
-            if(nbBytes == 0){
-                throw new Exception();
-            } else {
-                return list;
-            }
-        } catch (IOException e) {
-            //TODO : faire quelque chose
-            System.out.println("erreur lors de l'ouverture du fichier\r\n"+e.getMessage());
-            return null;
-        }
+            return list;
     }
 
-    public ArrayList<Integer> getMsgSTAT() throws Exception{
+    public ArrayList<Integer> getMsgSTAT() throws IOException{
         String path = "./src/ServerPop3/msg/"+user+".txt";
         ArrayList<Integer> list= new ArrayList<>();
         int nbBytes = 0;
         int nbPoint = 0;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+        BufferedReader br = new BufferedReader(new FileReader(path));
             String line;
 
             while ((line = br.readLine()) != null) {
 
                 nbBytes += line.getBytes("UTF-8").length;
 
-                if (line.equals(".<CR><LF>")) {
+                if (line.equals(".")) {
                     nbPoint++;
                 }
             }
             list.add(nbPoint);
             list.add(nbBytes);
             return list;
-
-        } catch (IOException e) {
-            //TODO : faire quelque chose
-            System.out.println("erreur lors de l'ouverture du fichier\n"+e.getMessage());
-            return  null;
-        }
     }
 }
