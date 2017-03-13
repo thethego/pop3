@@ -76,11 +76,13 @@ public class Communication {
                 switch (state) {
                     case 3: //AUTHENTIFICATION
                         try {
-                            this.user=requestSplitted.get(1);
-                            ArrayList<Integer> list = getMsgSTAT();
-                            out.write(("+OK maildrop has "+list.get(0)+" message(s) ("+list.get(1)+" octets)\r\n").getBytes());
-                            state = 5;
-                        } catch (IOException e) {
+                            if (requestSplitted.size() > 1) {
+                                user = requestSplitted.get(1);
+                                ArrayList<Integer> list = getMsgSTAT();
+                                out.write(("+OK maildrop has "+list.get(0)+" message(s) ("+list.get(1)+" octets)\r\n").getBytes());
+                                state = 5;
+                            } else throw new Exception();
+                        } catch (Exception e) {
                             out.write("-ERR invalid user\r\n".getBytes());
                         }
                         break;
@@ -106,7 +108,28 @@ public class Communication {
                         out.write("-ERR internal error\r\n".getBytes());
                         break;
                 }
-//            } else if (requestSplitted[0] == "LIST") {
+            } else if (requestSplitted.get(0).equals("LIST")) {
+                switch (state) {
+                    case 3: //AUTHENTIFICATION
+                    case 4: //AUTHORISATION
+                        out.write("-ERR user not connected\r\n".getBytes());
+                        break;
+                    case 5: //TRANSACTION
+                        try {
+                            ArrayList<Integer> list = getMsgLIST();
+                            out.write(("+OK "+list.get(0)+" messages ("+list.get(1)+" octets)\r\n").getBytes());
+                            for (int i=2; i<list.size(); i+=2) {
+                                out.write((list.get(i)+" "+list.get(i+1)+"\r\n").getBytes());
+                            }
+                            out.write((".\r\n").getBytes());
+                        } catch (Exception e) {
+                            out.write("-ERR\r\n".getBytes());
+                        }
+                        break;
+                    default:
+                        out.write("-ERR internal error\r\n".getBytes());
+                        break;
+                }
 
 //            } else if (requestSplitted[0] == "DELE") {
 
@@ -117,12 +140,14 @@ public class Communication {
                         break;
                     case 5: //TRANSACTION
                         try {
-                            ArrayList<String> list = getMsgRETR(Integer.parseInt(requestSplitted.get(1)));
-                            out.write(("+OK "+list.remove(0)+"\r\n").getBytes());
-                            for (String string : list) {
-                                out.write(string.getBytes());//CRLF ???
-                            }
-                        } catch (IOException e) {
+                            if (requestSplitted.size() > 1) {
+                                ArrayList<String> list = getMsgRETR(Integer.parseInt(requestSplitted.get(1)));
+                                out.write(("+OK "+list.remove(0)+"\r\n").getBytes());
+                                for (String string : list) {
+                                    out.write(string.getBytes());
+                                }
+                            } else throw new Exception();
+                        } catch (Exception e) {
                             out.write("-ERR internal error\r\n".getBytes());
                         }
                         break;
@@ -160,19 +185,19 @@ public class Communication {
         ArrayList<String> list= new ArrayList<>();
         int nbBytes = 0;
         BufferedReader br = new BufferedReader(new FileReader(path));
-            String line;
-            int nbPoint = 1;
-            while ((line = br.readLine()) != null && nbPoint<= nbMsg) {
-                if(nbPoint == nbMsg) {
-                    list.add(line+"\r\n");
-                    nbBytes += line.getBytes("UTF-8").length;
-                }
-                if (line.equals(".")) {
-                    nbPoint++;
-                }
+        String line;
+        int nbPoint = 1;
+        while ((line = br.readLine()) != null && nbPoint<= nbMsg) {
+            if(nbPoint == nbMsg) {
+                list.add(line+"\r\n");
+                nbBytes += line.getBytes("UTF-8").length;
             }
-            list.add(0,nbBytes+" octets\r\n");
-            return list;
+            if (line.equals(".")) {
+                nbPoint++;
+            }
+        }
+        list.add(0,nbBytes+" octets\r\n");
+        return list;
     }
 
     public ArrayList<Integer> getMsgSTAT() throws IOException{
@@ -181,18 +206,41 @@ public class Communication {
         int nbBytes = 0;
         int nbPoint = 0;
         BufferedReader br = new BufferedReader(new FileReader(path));
-            String line;
+        String line;
 
-            while ((line = br.readLine()) != null) {
+        while ((line = br.readLine()) != null) {
 
-                nbBytes += line.getBytes("UTF-8").length;
+            nbBytes += line.getBytes("UTF-8").length;
 
-                if (line.equals(".")) {
-                    nbPoint++;
-                }
+            if (line.equals(".")) {
+                nbPoint++;
             }
-            list.add(nbPoint);
-            list.add(nbBytes);
-            return list;
+        }
+        list.add(nbPoint);
+        list.add(nbBytes);
+        return list;
+    }
+
+    public ArrayList<Integer> getMsgLIST() throws IOException{
+        String path = "./src/ServerPop3/msg/"+user+".txt";
+        ArrayList<Integer> list= new ArrayList<>();
+        int nbBytes = 0;
+        int totBytes = 0;
+        BufferedReader br = new BufferedReader(new FileReader(path));
+        String line;
+        int nbPoint = 0;
+        while ((line = br.readLine()) != null) {
+            nbBytes += line.getBytes("UTF-8").length;
+            if (line.equals(".")) {
+                nbPoint++;
+                list.add(nbPoint);
+                list.add(nbBytes);
+                        totBytes+=nbBytes;
+                        nbBytes=0;
+            }
+        }
+        list.add(0,nbPoint);
+        list.add(1,totBytes);
+        return list;
     }
 }
