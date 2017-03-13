@@ -50,20 +50,8 @@ public class Communication {
                 System.out.println("Server Connected");
                 state = 3;
                 break;
-            case 3: //AUTHENTIFICATION
-                out.write("-ERR\r\n".getBytes());
-                break;
-            case 4: //AUTHORISATION
-                out.write("-ERR\r\n".getBytes());
-                break;
-            case 5: //TRANSACTION
-                out.write("-ERR\r\n".getBytes());
-                break;
-            case 6: //UPDATE
-                out.write("-ERR\r\n".getBytes());
-                break;
             default:
-                out.write("-ERR\r\n".getBytes());
+                out.write("-ERR internal error\r\n".getBytes());
                 break;
         }
         while(state>2 && state<6) {
@@ -86,9 +74,6 @@ public class Communication {
 //            System.out.println(requestSplitted.get(0));
             if (requestSplitted.get(0).equals("APOP")) {
                 switch (state) {
-                    case 2: //READY
-                        out.write("-ERR\r\n".getBytes());
-                        break;
                     case 3: //AUTHENTIFICATION
                         try {
                             this.user=requestSplitted.get(1);
@@ -99,43 +84,26 @@ public class Communication {
                             out.write("-ERR invalid user\r\n".getBytes());
                         }
                         break;
-                    case 4: //AUTHORISATION
-                        out.write("-ERR\r\n".getBytes());
-                        break;
-                    case 5: //TRANSACTION
-                        out.write("-ERR\r\n".getBytes());
-                        break;
-                    case 6: //UPDATE
-                        out.write("-ERR\r\n".getBytes());
-                        break;
                     default:
-                        out.write("-ERR\r\n".getBytes());
+                        out.write("-ERR internal error\r\n".getBytes());
                         break;
                 }
             } else if (requestSplitted.get(0).equals("STAT")) {
                 switch (state) {
-                    case 2: //READY
-                        out.write("-ERR\r\n".getBytes());
-                        break;
                     case 3: //AUTHENTIFICATION
-                        out.write("-ERR\r\n".getBytes());
-                        break;
                     case 4: //AUTHORISATION
-                        out.write("-ERR\r\n".getBytes());
+                        out.write("-ERR user not connected\r\n".getBytes());
                         break;
                     case 5: //TRANSACTION
                         try {
                             ArrayList<Integer> list = getMsgSTAT();
                             out.write(("+OK "+list.get(0)+" "+list.get(1)+"\r\n").getBytes());
                         } catch (IOException e) {
-                            out.write("-ERR\r\n".getBytes());
+                            out.write("-ERR internal error\r\n".getBytes());
                         }
                         break;
-                    case 6: //UPDATE
-                        out.write("-ERR\r\n".getBytes());
-                        break;
                     default:
-                        out.write("-ERR\r\n".getBytes());
+                        out.write("-ERR internal error\r\n".getBytes());
                         break;
                 }
 //            } else if (requestSplitted[0] == "LIST") {
@@ -143,15 +111,9 @@ public class Communication {
 //            } else if (requestSplitted[0] == "DELE") {
 
             } else if (requestSplitted.get(0).equals("RETR")) {
-                switch (state) {
-                    case 2: //READY
-                        out.write("-ERR\r\n".getBytes());
-                        break;
-                    case 3: //AUTHENTIFICATION
-                        out.write("-ERR\r\n".getBytes());
-                        break;
+                switch (state) {case 3: //AUTHENTIFICATION
                     case 4: //AUTHORISATION
-                        out.write("-ERR\r\n".getBytes());
+                        out.write("-ERR user not connected\r\n".getBytes());
                         break;
                     case 5: //TRANSACTION
                         try {
@@ -161,14 +123,11 @@ public class Communication {
                                 out.write(string.getBytes());//CRLF ???
                             }
                         } catch (IOException e) {
-                            out.write("-ERR\r\n".getBytes());
+                            out.write("-ERR internal error\r\n".getBytes());
                         }
                         break;
-                    case 6: //UPDATE
-                        out.write("-ERR\r\n".getBytes());
-                        break;
                     default:
-                        out.write("-ERR\r\n".getBytes());
+                        out.write("-ERR internal error\r\n".getBytes());
                         break;
                 }
 
