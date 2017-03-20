@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.security.*;
+import java.sql.Timestamp;
 
 /**
  * Created by p1303175 on 06/03/2017.
@@ -20,12 +22,14 @@ public class Communication {
     private int ID;
     private int state;
     private String user;
+    private Timestamp timestamp;
 
     public Communication(Socket conn_cli, int ID) {
         this.conn_cli = conn_cli;
         this.ID = ID;
         this.state = 2;
         this.user = "";
+        this.timestamp = new Timestamp(System.currentTimeMillis());
     }
 
     void start() throws IOException {
@@ -46,7 +50,7 @@ public class Communication {
         String request = null;
         switch (state) {
             case 2: //READY
-                out.write("+OK alpha POP3 server Ready\r\n".getBytes());
+                out.write(("+OK alpha POP3 server Ready <"+timestamp.getTime()+">\r\n").getBytes());
                 System.out.println("Server Connected");
                 state = 3;
                 break;
@@ -71,19 +75,18 @@ public class Communication {
             } else {
                 requestSplitted.add("QUIT");
             }
-//            System.out.println(requestSplitted.get(0));
             if (requestSplitted.get(0).equals("APOP")) {
                 switch (state) {
                     case 3: //AUTHENTIFICATION
                         try {
-                            if (requestSplitted.size() > 1) {
+                            if (requestSplitted.size() > 1 && User.getInstance().isUser(requestSplitted.get(1))) {
                                 user = requestSplitted.get(1);
                                 ArrayList<Integer> list = getMsgSTAT();
                                 out.write(("+OK maildrop has "+list.get(0)+" message(s) ("+list.get(1)+" octets)\r\n").getBytes());
                                 state = 5;
-                            } else throw new Exception();
+                            } else throw new Exception("invalid user");
                         } catch (Exception e) {
-                            out.write("-ERR invalid user\r\n".getBytes());
+                            out.write(("-ERR "+e.getMessage()+"\r\n").getBytes());
                         }
                         break;
                     default:
@@ -148,7 +151,7 @@ public class Communication {
                                 }
                             } else throw new Exception();
                         } catch (Exception e) {
-                            out.write("-ERR internal error\r\n".getBytes());
+                            out.write("-ERR message invalid\r\n".getBytes());
                         }
                         break;
                     default:
@@ -180,7 +183,7 @@ public class Communication {
         }
     }
 
-    public ArrayList<String> getMsgRETR(int nbMsg) throws IOException{
+    public ArrayList<String> getMsgRETR(int nbMsg) throws Exception{
         String path = "./src/ServerPop3/msg/"+user+".txt";
         ArrayList<String> list= new ArrayList<>();
         int nbBytes = 0;
@@ -196,7 +199,9 @@ public class Communication {
                 nbPoint++;
             }
         }
-        list.add(0,nbBytes+" octets\r\n");
+        if(nbBytes>0){
+            list.add(0,nbBytes+" octets\r\n");
+        } else throw new Exception("internal error");
         return list;
     }
 
@@ -207,11 +212,8 @@ public class Communication {
         int nbPoint = 0;
         BufferedReader br = new BufferedReader(new FileReader(path));
         String line;
-
         while ((line = br.readLine()) != null) {
-
             nbBytes += line.getBytes("UTF-8").length;
-
             if (line.equals(".")) {
                 nbPoint++;
             }
@@ -242,5 +244,9 @@ public class Communication {
         list.add(0,nbPoint);
         list.add(1,totBytes);
         return list;
+    }
+
+    public String getAPOP(){
+        return "";
     }
 }
