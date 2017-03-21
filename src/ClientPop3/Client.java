@@ -44,113 +44,153 @@ public class Client {
         } catch (IOException ex) {
             System.out.println("2");
         }
-        ArrayList<String> requestSplitted;
+        ArrayList<String> strSplitted;
         Scanner sc = new Scanner(System.in);
         String request;
         String response;
         Scanner s;
 
 
-        while (state > 0){
-            request= null;
-            response = in.readLine();
-            System.out.println(response);
-            requestSplitted = new ArrayList<>();
-            s = new Scanner(response).useDelimiter("\\s+");
-            while (s.hasNext()) {
-                requestSplitted.add(s.next());
-            }
-            if (requestSplitted.get(0).equals("+OK")){
-                switch (state){
-                    case 1:
-                        for (int i = 1; i < requestSplitted.size() && timestamp.length() < 1; i++) {
-                            String str = requestSplitted.get(i);
-                            if(str.substring(0,1).equals("<")
-                                    && str.substring(str.length()-1).equals(">")){
-                                timestamp = str;
-                                System.out.println(timestamp);
-                            }
+        //on lit la première réponse du serveur
+        response = in.readLine();
+        System.out.println(response);
+        strSplitted = new ArrayList<>();
+        s = new Scanner(response).useDelimiter("\\s+");
+        while (s.hasNext()) {
+            strSplitted.add(s.next());
+        }
+        if (strSplitted.get(0).equals("+OK")){
+            switch (state){
+                case 1:
+                    for (int i = 1; i < strSplitted.size() && timestamp.length() < 1; i++) {
+                        String str = strSplitted.get(i);
+                        if(str.substring(0,1).equals("<")
+                                && str.substring(str.length()-1).equals(">")){
+                            timestamp = str;
                         }
-                        if(timestamp.length() > 0){
-                            this.state = 2;
-                        } else {
-                            System.out.println("error : no timestamp received");
-                        }
-                        break;
-                    case 3:
-                        this.state = 5;
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else if (requestSplitted.get(0).equals("-ERR")){
-                switch (state){
-                    case 3:
+                    }
+                    if(timestamp.length() > 0){
                         this.state = 2;
-                        break;
-                    default:
-                        break;
-                }
+                    } else {
+                        System.out.println("error : no timestamp received");
+                    }
+                    break;
+                default:
+                    break;
             }
-
+        }
+        while (state > 0){
             System.out.println("Veuillez saisir une requète :");
             String str = sc.nextLine();
             request = str;
-            System.out.println("Vous avez saisi : " + str);
 
-            if (request.substring(0,4).equals("APOP")){
-                switch (state){
+            if (request.substring(0, 4).equals("APOP")) {
+                switch (state) {
                     case 2:
-                        requestSplitted = new ArrayList<>();
+                        strSplitted = new ArrayList<>();
                         s = new Scanner(request).useDelimiter("\\s+");
                         while (s.hasNext()) {
-                            requestSplitted.add(s.next());
+                            strSplitted.add(s.next());
                         }
                         try {
-                            if(requestSplitted.size() > 2) {
-                                out.write((requestSplitted.get(0) + " " + requestSplitted.get(1) + " ").getBytes());
-                                out.write(this.getAPOPMD5(requestSplitted.get(2)).getBytes());
+                            if (strSplitted.size() > 2) {
+                                out.write((strSplitted.get(0) + " " + strSplitted.get(1) + " ").getBytes());
+                                out.write(this.getAPOPMD5(strSplitted.get(2)).getBytes());
                                 out.write(("\r\n").getBytes());
+                                this.state = 3;
+                                this.getOneLine(in);
                             } else {
-                                out.write((request+"\r\n").getBytes());
+                                System.out.println("password and/or login missing");
                             }
                         } catch (NoSuchAlgorithmException e) {
                             System.out.println(e.getMessage());
                         }
-                        this.state = 3;
                         break;
                     default:
                         System.out.println("Erreur: non-identifié");
                         break;
                 }
-            }
-            else if ((request.substring(0,4).equals("STAT"))
-                    || (request.substring(0,4).equals("LIST"))
-                    || (request.substring(0,4).equals("RETR"))){
-                switch (state){
+            } else if (request.substring(0, 4).equals("STAT")){
+                switch (state) {
                     case 5:
-                        out.write(request.getBytes());
+                        out.write((request + "\r\n").getBytes());
+                        this.getOneLine(in);
                         break;
                     default:
                         System.out.println("Requête non valide");
                         break;
                 }
-            }
-            else if (request.substring(0,4).equals("QUIT")){
-                switch (state){
+            }else if ((request.substring(0, 4).equals("LIST"))
+                    || (request.substring(0, 4).equals("RETR"))) {
+                switch (state) {
+                    case 5:
+                        out.write((request + "\r\n").getBytes());
+                        if(this.getOneLine(in))
+                            this.getNextLines(in);
+                        break;
                     default:
-                        out.write(request.getBytes());
+                        System.out.println("Requête non valide");
+                        break;
+                }
+            } else if (request.substring(0, 4).equals("QUIT")) {
+                switch (state) {
+                    default:
+                        out.write((request + "\r\n").getBytes());
+                        this.getOneLine(in);
                         this.state = 0;
                         break;
                 }
             }
-
         }
-
     }
 
-    public String getAPOPMD5(String pswd) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    private boolean getOneLine(BufferedReader in) throws IOException {
+        String response;
+        ArrayList<String> responseSplitted = new ArrayList<>();
+        do {
+            response = in.readLine();
+            Scanner s = new Scanner(response).useDelimiter("\\s+");
+            while (s.hasNext()) {
+                responseSplitted.add(s.next());
+            }
+            if(responseSplitted.size()>0) {
+                if (responseSplitted.get(0).equals("+OK")) {
+                    switch (state) {
+                        case 3:
+                            System.out.println("connecté");
+                            this.state = 5;
+                            break;
+                        default:
+                            break;
+                    }
+                    System.out.println(response);
+                    return true;
+                } else if (responseSplitted.get(0).equals("-ERR")) {
+                    switch (state) {
+                        case 3:
+                            this.state = 2;
+                            break;
+                        default:
+                            break;
+                    }
+                    System.out.println(response);
+                    return false;
+                }
+            }
+        }while (responseSplitted.size()==0);
+        return false;
+    }
+
+    private void getNextLines(BufferedReader in) throws IOException {
+        String response;
+        response = in.readLine();
+        while(!response.equals(".")) {
+            System.out.println(response);
+            response = in.readLine();
+        }
+    }
+
+    private String getAPOPMD5(String pswd) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         String str = this.timestamp+pswd;
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] checkSum = md.digest(str.getBytes("UTF-8"));

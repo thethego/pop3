@@ -148,9 +148,10 @@ public class Communication {
                                     for (String string : list) {
                                         out.write(string.getBytes());
                                     }
+                                    out.write("\r\n".getBytes());
                                 } else throw new Exception();
                             } catch (Exception e) {
-                                out.write("-ERR message invalid\r\n".getBytes());
+                                out.write("-ERR message number invalid\r\n".getBytes());
                             }
                             break;
                         default:
@@ -185,7 +186,7 @@ public class Communication {
         }
     }
 
-    public ArrayList<String> getMsgRETR(int nbMsg) throws Exception{
+    private ArrayList<String> getMsgRETR(int nbMsg) throws Exception{
         String path = "./src/ServerPop3/msg/"+user+".txt";
         ArrayList<String> list= new ArrayList<>();
         int nbBytes = 0;
@@ -207,7 +208,7 @@ public class Communication {
         return list;
     }
 
-    public ArrayList<Integer> getMsgSTAT() throws IOException{
+    private ArrayList<Integer> getMsgSTAT() throws IOException{
         String path = "./src/ServerPop3/msg/"+user+".txt";
         ArrayList<Integer> list= new ArrayList<>();
         int nbBytes = 0;
@@ -225,7 +226,7 @@ public class Communication {
         return list;
     }
 
-    public ArrayList<Integer> getMsgLIST() throws IOException{
+    private ArrayList<Integer> getMsgLIST() throws IOException{
         String path = "./src/ServerPop3/msg/"+user+".txt";
         ArrayList<Integer> list= new ArrayList<>();
         int nbBytes = 0;
@@ -248,11 +249,11 @@ public class Communication {
         return list;
     }
 
-    public String getAPOP(){
+    private String getAPOP(){
         return "<"+this.timestamp.getTime()+"@machine.example>";
     }
 
-    public String getAPOPMD5(String user) throws Exception {
+    private String getAPOPMD5(String user) throws Exception {
         String pswd = User.getInstance().getPassword(user);
         String str = this.getAPOP()+pswd;
         byte[] checkSum;
