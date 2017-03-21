@@ -3,13 +3,10 @@ package ServerPop3;
 import java.io.*;
 
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.security.*;
 import java.sql.Timestamp;
 
@@ -33,153 +30,158 @@ public class Communication {
     }
 
     void start() throws IOException {
-
-        BufferedReader in = null;
         try {
-            in = new BufferedReader(new InputStreamReader(conn_cli.getInputStream()));
-        } catch (IOException ex) {
-            System.out.println("1");
-        }
-        OutputStream out = null;
-        try {
-            out = conn_cli.getOutputStream();
-        } catch (IOException ex) {
-            System.out.println("2");
-        }
-
-        String request = null;
-        switch (state) {
-            case 2: //READY
-                out.write(("+OK alpha POP3 server Ready <"+timestamp.getTime()+">\r\n").getBytes());
-                System.out.println("Server Connected");
-                state = 3;
-                break;
-            default:
-                out.write("-ERR internal error\r\n".getBytes());
-                break;
-        }
-        while(state>2 && state<6) {
+            BufferedReader in = null;
             try {
-                request = in.readLine();
+                in = new BufferedReader(new InputStreamReader(conn_cli.getInputStream()));
             } catch (IOException ex) {
-                System.out.println("3");
+                System.out.println("1");
+            }
+            OutputStream out = null;
+            try {
+                out = conn_cli.getOutputStream();
+            } catch (IOException ex) {
+                System.out.println("2");
             }
 
-            System.out.println(request);
-            ArrayList<String> requestSplitted = new ArrayList<>();
-            if(request != null) {
-                Scanner s = new Scanner(request).useDelimiter("\\s+");
-                while (s.hasNext()) {
-                    requestSplitted.add(s.next());
-                }
-            } else {
-                requestSplitted.add("QUIT");
+            String request = null;
+            switch (state) {
+                case 2: //READY
+                    out.write(("+OK alpha POP3 server Ready " + this.getAPOP() + "\r\n").getBytes());
+                    System.out.println("Server Connected");
+                    state = 3;
+                    break;
+                default:
+                    out.write("-ERR internal error\r\n".getBytes());
+                    break;
             }
-            if (requestSplitted.get(0).equals("APOP")) {
-                switch (state) {
-                    case 3: //AUTHENTIFICATION
-                        try {
-                            if (requestSplitted.size() > 1 && User.getInstance().isUser(requestSplitted.get(1))) {
-                                user = requestSplitted.get(1);
-                                ArrayList<Integer> list = getMsgSTAT();
-                                out.write(("+OK maildrop has "+list.get(0)+" message(s) ("+list.get(1)+" octets)\r\n").getBytes());
-                                state = 5;
-                            } else throw new Exception("invalid user");
-                        } catch (Exception e) {
-                            out.write(("-ERR "+e.getMessage()+"\r\n").getBytes());
+            while (state > 2 && state < 6) {
+                ArrayList<String> requestSplitted = new ArrayList<>();
+                try {
+                    assert in != null;
+                    request = in.readLine();
+                    if (request != null) {
+                        Scanner s = new Scanner(request).useDelimiter("\\s+");
+                        while (s.hasNext()) {
+                            requestSplitted.add(s.next());
                         }
-                        break;
-                    default:
-                        out.write("-ERR internal error\r\n".getBytes());
-                        break;
+                        System.out.println(request);
+                    } else throw new Exception();
+                } catch (Exception ex) {
+                    out.write("-ERR internal error\r\n".getBytes());
+                    requestSplitted.add("QUIT");
                 }
-            } else if (requestSplitted.get(0).equals("STAT")) {
-                switch (state) {
-                    case 3: //AUTHENTIFICATION
-                    case 4: //AUTHORISATION
-                        out.write("-ERR user not connected\r\n".getBytes());
-                        break;
-                    case 5: //TRANSACTION
-                        try {
-                            ArrayList<Integer> list = getMsgSTAT();
-                            out.write(("+OK "+list.get(0)+" "+list.get(1)+"\r\n").getBytes());
-                        } catch (IOException e) {
-                            out.write("-ERR internal error\r\n".getBytes());
-                        }
-                        break;
-                    default:
-                        out.write("-ERR internal error\r\n".getBytes());
-                        break;
-                }
-            } else if (requestSplitted.get(0).equals("LIST")) {
-                switch (state) {
-                    case 3: //AUTHENTIFICATION
-                    case 4: //AUTHORISATION
-                        out.write("-ERR user not connected\r\n".getBytes());
-                        break;
-                    case 5: //TRANSACTION
-                        try {
-                            ArrayList<Integer> list = getMsgLIST();
-                            out.write(("+OK "+list.get(0)+" messages ("+list.get(1)+" octets)\r\n").getBytes());
-                            for (int i=2; i<list.size(); i+=2) {
-                                out.write((list.get(i)+" "+list.get(i+1)+"\r\n").getBytes());
+                if (requestSplitted.get(0).equals("APOP")) {
+                    switch (state) {
+                        case 3: //AUTHENTIFICATION
+                            try {
+                                if (requestSplitted.size() > 1 && User.getInstance().isUser(requestSplitted.get(1))) {
+                                    if (requestSplitted.get(2).equals(this.getAPOPMD5(requestSplitted.get(1)))) {
+                                        user = requestSplitted.get(1);
+                                        ArrayList<Integer> list = getMsgSTAT();
+                                        out.write(("+OK maildrop has " + list.get(0) + " message(s) (" + list.get(1) + " octets)\r\n").getBytes());
+                                        state = 5;
+                                    } else throw new Exception("invalid password");
+                                } else throw new Exception("invalid user");
+                            } catch (Exception e) {
+                                out.write(("-ERR " + e.getMessage() + "\r\n").getBytes());
                             }
-                            out.write((".\r\n").getBytes());
-                        } catch (Exception e) {
-                            out.write("-ERR\r\n".getBytes());
-                        }
-                        break;
-                    default:
-                        out.write("-ERR internal error\r\n".getBytes());
-                        break;
-                }
-
-//            } else if (requestSplitted[0] == "DELE") {
-
-            } else if (requestSplitted.get(0).equals("RETR")) {
-                switch (state) {case 3: //AUTHENTIFICATION
-                    case 4: //AUTHORISATION
-                        out.write("-ERR user not connected\r\n".getBytes());
-                        break;
-                    case 5: //TRANSACTION
-                        try {
-                            if (requestSplitted.size() > 1) {
-                                ArrayList<String> list = getMsgRETR(Integer.parseInt(requestSplitted.get(1)));
-                                out.write(("+OK "+list.remove(0)+"\r\n").getBytes());
-                                for (String string : list) {
-                                    out.write(string.getBytes());
+                            break;
+                        default:
+                            out.write("-ERR internal error\r\n".getBytes());
+                            break;
+                    }
+                } else if (requestSplitted.get(0).equals("STAT")) {
+                    switch (state) {
+                        case 3: //AUTHENTIFICATION
+                        case 4: //AUTHORISATION
+                            out.write("-ERR user not connected\r\n".getBytes());
+                            break;
+                        case 5: //TRANSACTION
+                            try {
+                                ArrayList<Integer> list = getMsgSTAT();
+                                out.write(("+OK " + list.get(0) + " " + list.get(1) + "\r\n").getBytes());
+                            } catch (IOException e) {
+                                out.write("-ERR internal error\r\n".getBytes());
+                            }
+                            break;
+                        default:
+                            out.write("-ERR internal error\r\n".getBytes());
+                            break;
+                    }
+                } else if (requestSplitted.get(0).equals("LIST")) {
+                    switch (state) {
+                        case 3: //AUTHENTIFICATION
+                        case 4: //AUTHORISATION
+                            out.write("-ERR user not connected\r\n".getBytes());
+                            break;
+                        case 5: //TRANSACTION
+                            try {
+                                ArrayList<Integer> list = getMsgLIST();
+                                out.write(("+OK " + list.get(0) + " messages (" + list.get(1) + " octets)\r\n").getBytes());
+                                for (int i = 2; i < list.size(); i += 2) {
+                                    out.write((list.get(i) + " " + list.get(i + 1) + "\r\n").getBytes());
                                 }
-                            } else throw new Exception();
-                        } catch (Exception e) {
-                            out.write("-ERR message invalid\r\n".getBytes());
-                        }
-                        break;
-                    default:
-                        out.write("-ERR internal error\r\n".getBytes());
-                        break;
-                }
+                                out.write((".\r\n").getBytes());
+                            } catch (Exception e) {
+                                out.write("-ERR\r\n".getBytes());
+                            }
+                            break;
+                        default:
+                            out.write("-ERR internal error\r\n".getBytes());
+                            break;
+                    }
 
-            } else if (requestSplitted.get(0).equals("QUIT")) {
-                switch (state) {
-                    case 6: //UPDATE
-                        out.write("-ERR\r\n".getBytes());
-                        break;
-                    default:
-                        out.write("+OK alpha POP3 server signing off\r\n".getBytes());
-                        state = 6;
-                        break;
+                    //            } else if (requestSplitted[0] == "DELE") {
+
+                } else if (requestSplitted.get(0).equals("RETR")) {
+                    switch (state) {
+                        case 3: //AUTHENTIFICATION
+                        case 4: //AUTHORISATION
+                            out.write("-ERR user not connected\r\n".getBytes());
+                            break;
+                        case 5: //TRANSACTION
+                            try {
+                                if (requestSplitted.size() > 1) {
+                                    ArrayList<String> list = getMsgRETR(Integer.parseInt(requestSplitted.get(1)));
+                                    out.write(("+OK " + list.remove(0) + "\r\n").getBytes());
+                                    for (String string : list) {
+                                        out.write(string.getBytes());
+                                    }
+                                } else throw new Exception();
+                            } catch (Exception e) {
+                                out.write("-ERR message invalid\r\n".getBytes());
+                            }
+                            break;
+                        default:
+                            out.write("-ERR internal error\r\n".getBytes());
+                            break;
+                    }
+
+                } else if (requestSplitted.get(0).equals("QUIT")) {
+                    switch (state) {
+                        case 6: //UPDATE
+                            out.write("-ERR\r\n".getBytes());
+                            break;
+                        default:
+                            out.write("+OK alpha POP3 server signing off\r\n".getBytes());
+                            state = 6;
+                            break;
+                    }
+                } else {
+                    out.write("-ERR invalid request\r\n".getBytes());
                 }
-            } else {
-                out.write("-ERR invalid request\r\n".getBytes());
             }
-        }
-        // on ferme les flux.
-        out.close();
-        in.close();
-        conn_cli.close();
+            // on ferme les flux.
+            out.close();
+            in.close();
+            conn_cli.close();
 
-        if(state == 6){ //UPDATE
-            state = 2;
+            if (state == 6) { //UPDATE
+                state = 2;
+            }
+        } catch (SocketException se){
+            System.out.println("Connetcion closed : "+se.getMessage());
         }
     }
 
@@ -247,6 +249,19 @@ public class Communication {
     }
 
     public String getAPOP(){
-        return "";
+        return "<"+this.timestamp.getTime()+"@machine.example>";
+    }
+
+    public String getAPOPMD5(String user) throws Exception {
+        String pswd = User.getInstance().getPassword(user);
+        String str = this.getAPOP()+pswd;
+        byte[] checkSum;
+        try {
+            checkSum = MessageDigest.getInstance("MD5")
+                    .digest(str.getBytes("UTF-8"));
+        } catch (Exception e) {
+            throw new Exception("internal error");
+        }
+        return new String(checkSum, "UTF-8");
     }
 }

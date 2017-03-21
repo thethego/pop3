@@ -1,11 +1,13 @@
 package ClientPop3;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Scanner;
 
 /**
  * Created by Silver on 20-Mar-17.
@@ -13,6 +15,7 @@ import java.net.Socket;
 public class Client {
     private Socket socket;
     private InetAddress server;
+    private String timestamp = "";
     private int port;
     private int state;
 
@@ -41,19 +44,38 @@ public class Client {
         } catch (IOException ex) {
             System.out.println("2");
         }
-
+        ArrayList<String> requestSplitted;
+        Scanner sc = new Scanner(System.in);
         String request;
         String response;
+        Scanner s;
+
+
         while (state > 0){
             request= null;
-//            request = scanner ...
             response = in.readLine();
             System.out.println(response);
-
-            if (response.substring(0,3).equals("+OK")){
+            requestSplitted = new ArrayList<>();
+            s = new Scanner(response).useDelimiter("\\s+");
+            while (s.hasNext()) {
+                requestSplitted.add(s.next());
+            }
+            if (requestSplitted.get(0).equals("+OK")){
                 switch (state){
                     case 1:
-                        this.state = 2;
+                        for (int i = 1; i < requestSplitted.size() && timestamp.length() < 1; i++) {
+                            String str = requestSplitted.get(i);
+                            if(str.substring(0,1).equals("<")
+                                    && str.substring(str.length()-1).equals(">")){
+                                timestamp = str;
+                                System.out.println(timestamp);
+                            }
+                        }
+                        if(timestamp.length() > 0){
+                            this.state = 2;
+                        } else {
+                            System.out.println("error : no timestamp received");
+                        }
                         break;
                     case 3:
                         this.state = 5;
@@ -62,7 +84,7 @@ public class Client {
                         break;
                 }
             }
-            else if (response.substring(0,4).equals("-ERR")){
+            else if (requestSplitted.get(0).equals("-ERR")){
                 switch (state){
                     case 3:
                         this.state = 2;
@@ -71,10 +93,31 @@ public class Client {
                         break;
                 }
             }
-            else if (request.substring(0,4).equals("APOP")){
+
+            System.out.println("Veuillez saisir une requète :");
+            String str = sc.nextLine();
+            request = str;
+            System.out.println("Vous avez saisi : " + str);
+
+            if (request.substring(0,4).equals("APOP")){
                 switch (state){
                     case 2:
-                        out.write(request.getBytes());
+                        requestSplitted = new ArrayList<>();
+                        s = new Scanner(request).useDelimiter("\\s+");
+                        while (s.hasNext()) {
+                            requestSplitted.add(s.next());
+                        }
+                        try {
+                            if(requestSplitted.size() > 2) {
+                                out.write((requestSplitted.get(0) + " " + requestSplitted.get(1) + " ").getBytes());
+                                out.write(this.getAPOPMD5(requestSplitted.get(2)).getBytes());
+                                out.write(("\r\n").getBytes());
+                            } else {
+                                out.write((request+"\r\n").getBytes());
+                            }
+                        } catch (NoSuchAlgorithmException e) {
+                            System.out.println(e.getMessage());
+                        }
                         this.state = 3;
                         break;
                     default:
@@ -105,81 +148,12 @@ public class Client {
 
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }
+
+    public String getAPOPMD5(String pswd) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+        String str = this.timestamp+pswd;
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] checkSum = md.digest(str.getBytes("UTF-8"));
+        return new String(checkSum, "UTF-8");
     }
 }
