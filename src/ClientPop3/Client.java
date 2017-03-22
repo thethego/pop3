@@ -15,7 +15,7 @@ import java.util.Scanner;
 public class Client {
     private Socket socket;
     private InetAddress server;
-    private String timestamp = "";
+    private String timestamp;
     private int port;
     private int state;
 
@@ -28,6 +28,7 @@ public class Client {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        this.timestamp = "";
     }
 
     void start() throws IOException {
@@ -183,11 +184,10 @@ public class Client {
 
     private void getNextLines(BufferedReader in) throws IOException {
         String response;
-        response = in.readLine();
-        while(!response.equals(".")) {
-            System.out.println(response);
-            response = in.readLine();
-        }
+         do {
+             response = in.readLine();
+             System.out.println(response);
+        } while(!response.equals("."));
     }
 
     private String getAPOPMD5(String pswd) throws NoSuchAlgorithmException, UnsupportedEncodingException {
