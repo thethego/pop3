@@ -12,8 +12,6 @@ public class Main {
         try {
             Client client = new Client(InetAddress.getByName("127.0.0.1"),10010);
             client.start();
-
-
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {

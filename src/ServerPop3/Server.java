@@ -1,11 +1,11 @@
 package ServerPop3;
 
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 /**
@@ -15,24 +15,25 @@ public class Server {
 
     private int portServeur = 10010;
     private InetAddress addr;
-    ServerSocket ss;
+    SSLServerSocket ss;
     private int ID = 0;
 
     public Server() throws IOException {
-        this.ss = new ServerSocket(portServeur);
+        ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
+        this.ss = (SSLServerSocket) ssocketFactory.createServerSocket(portServeur);
+        ss.setEnabledCipherSuites(ss.getSupportedCipherSuites());
     }
 
     public void connexion() throws IOException {
         System.out.println("Server waiting");
-        while(true){
-            Socket conn_cli = null;
-            try {
-                conn_cli = ss.accept();
-            } catch (IOException ex) {
-                System.out.println("connection timed out");
+        try {
+            while(true){
+                SSLSocket conn_cli = (SSLSocket)ss.accept();
+                Communication com = new Communication(conn_cli, ID++);
+                new Thread(com).start();
             }
-            Communication com = new Communication(conn_cli, ID++);
-            com.start();
+        } catch (IOException ex) {
+            System.out.println(ex.getMessage());
         }
 
     }

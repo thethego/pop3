@@ -1,11 +1,10 @@
 package ServerPop3;
 
+import javax.net.ssl.SSLSocket;
 import java.io.*;
 
-import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 import java.security.*;
 import java.sql.Timestamp;
@@ -13,15 +12,15 @@ import java.sql.Timestamp;
 /**
  * Created by p1303175 on 06/03/2017.
  */
-public class Communication {
+public class Communication implements Runnable{
 
-    private Socket conn_cli;
+    private SSLSocket conn_cli;
     private int ID;
     private int state;
     private String user;
     private Timestamp timestamp;
 
-    public Communication(Socket conn_cli, int ID) {
+    public Communication(SSLSocket conn_cli, int ID) {
         this.conn_cli = conn_cli;
         this.ID = ID;
         this.state = 2;
@@ -264,5 +263,14 @@ public class Communication {
             throw new Exception("internal error");
         }
         return new String(checkSum, "UTF-8");
+    }
+
+    @Override
+    public void run() {
+        try {
+            this.start();
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
     }
 }

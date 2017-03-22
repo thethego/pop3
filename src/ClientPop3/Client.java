@@ -1,19 +1,19 @@
 package ClientPop3;
 
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 
 /**
  * Created by Silver on 20-Mar-17.
  */
 public class Client {
-    private Socket socket;
+    private SSLSocket socket;
     private InetAddress server;
     private String timestamp;
     private int port;
@@ -24,7 +24,10 @@ public class Client {
         this.port = port;
         this.state=1;
         try {
-            this.socket = new Socket(server, port);
+            SSLSocketFactory fabrique= (SSLSocketFactory) SSLSocketFactory.getDefault();
+            this.socket= (SSLSocket) fabrique. createSocket (server, port);
+            socket.setEnabledCipherSuites(socket.getSupportedCipherSuites());
+//            this.socket = new Socket(server, port);
         } catch (IOException e) {
             e.printStackTrace();
         }
