@@ -75,7 +75,10 @@ public class Communication implements Runnable{
                         case 3: //AUTHENTIFICATION
                             try {
                                 if (requestSplitted.size() > 1 && User.getInstance().isUser(requestSplitted.get(1))) {
-                                    if (requestSplitted.get(2).equals(this.getAPOPMD5(requestSplitted.get(1)))) {
+                                    String requestMD5 = request.substring(requestSplitted.get(0).length()+
+                                            requestSplitted.get(1).length() + 2);
+                                    String APOp = this.getAPOPMD5(requestSplitted.get(1));
+                                    if (requestMD5.equals(this.getAPOPMD5(requestSplitted.get(1)))) {
                                         user = requestSplitted.get(1);
                                         ArrayList<Integer> list = getMsgSTAT();
                                         out.write(("+OK maildrop has " + list.get(0) + " message(s) (" + list.get(1) + " octets)\r\n").getBytes());
@@ -262,7 +265,7 @@ public class Communication implements Runnable{
         } catch (Exception e) {
             throw new Exception("internal error");
         }
-        return new String(checkSum, "UTF-8");
+        return new String(checkSum, "UTF-8").replace("\n","n");
     }
 
     @Override

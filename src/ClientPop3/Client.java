@@ -104,14 +104,14 @@ public class Client {
                                 this.state = 3;
                                 this.getOneLine(in);
                             } else {
-                                System.out.println("password and/or login missing");
+                                System.out.println("mot de passe et/ou identifiant manquant");
                             }
                         } catch (NoSuchAlgorithmException e) {
                             System.out.println(e.getMessage());
                         }
                         break;
                     default:
-                        System.out.println("Erreur: non-identifié");
+                        System.out.println("Requète non valide");
                         break;
                 }
             } else if (request.substring(0, 4).equals("STAT")){
@@ -197,6 +197,6 @@ public class Client {
         String str = this.timestamp+pswd;
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] checkSum = md.digest(str.getBytes("UTF-8"));
-        return new String(checkSum, "UTF-8");
+        return new String(checkSum, "UTF-8").replace("\n","n");
     }
 }
